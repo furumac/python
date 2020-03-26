@@ -15,33 +15,50 @@ input_csv_path = 'csv/db_insert.csv'
 
 
 def config_read():
+    '''
+    設定ファイルを読み込む
+    '''
     config.read(config_path, encoding='utf-8') 
 
-
-def connect_db():
-    db = config['DEFAULT']['Db']
-    user = config['DEFAULT']['User']
-    passwd = config['DEFAULT']['Passwd']
-
+    # 設定ファイルが存在するかを確認する
     if not os.path.exists(config_path):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), config_path)
+
+
+def connect_db():
+    '''
+    DBに接続する
+    '''
+    db = config['DEFAULT']['Db']
+    user = config['DEFAULT']['User']
+    passwd = config['DEFAULT']['Passwd']
 
     connect = MySQLdb.connect(db=db, user=user, passwd=passwd)
     cursor = connect.cursor()
     return connect, cursor
 
+
 def drop_table(cursor):
+    '''
+    必要があれば初めにテーブルをDROPする
+    '''
     cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
     print(f"TABLE [{TABLE_NAME}] をDROPしました。")
 
 
 def create_table(cursor):
+    '''
+    DROP後にテーブルを作り直す
+    '''
     cursor.execute(f"create table {TABLE_NAME} (id int(8) PRIMARY KEY, url char(255))")
     print(f"TABLE [{TABLE_NAME}] をCREATEしました。")
 
 
 def insert_db_from_csv(cursor):
+    '''
+    CSVからファイルを読み込みDBにINSERTする
+    '''
     with open(input_csv_path) as csv:
         for i, line in enumerate(csv):
             list = line.strip().split(',')
@@ -60,6 +77,9 @@ def insert_db_from_csv(cursor):
 
 
 def close_db(connect, cursor):
+    '''
+    DB処理完了。commitしないとINSERTがされないので注意
+    '''
     cursor.close()
     connect.commit()
     connect.close()
@@ -68,13 +88,12 @@ def close_db(connect, cursor):
 def main():
 
     config_read()
-
+    
     connect, cursor = connect_db()
 
-    # INSERT前にDROPする必要がなければコメントアウトしておく
-    drop_table(cursor)
-
-    create_table(cursor)
+    # TABLEを作り直す場合はコメントを外す 
+    #drop_table(cursor)
+    #create_table(cursor)
 
     insert_db_from_csv(cursor)
 
